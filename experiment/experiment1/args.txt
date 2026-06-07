@@ -1,0 +1,4 @@
+content_dir: E:/PROJECTS/MAJOR/Dataset/train
+style_dir: E:/PROJECTS/MAJOR/Dataset/train_2
+vgg: 
+experiment: experiment1
