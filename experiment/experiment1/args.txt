@@ -1,4 +1,9 @@
-content_dir: E:/PROJECTS/MAJOR/Dataset/train
-style_dir: E:/PROJECTS/MAJOR/Dataset/train_2
-vgg: 
+content_dir: E:/PROJECTS/MAJOR/NST_APP/content_img
+style_dir: E:/PROJECTS/MAJOR/NST_APP/style_img
+vgg: E:/PROJECTS/MAJOR/NST_APP/vgg_normalised.pth
 experiment: experiment1
+final_size: 256
+content_size: 512
+style_size: 512
+crop: True
+batch_size: 4

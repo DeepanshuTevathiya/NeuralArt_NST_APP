@@ -1,28 +1,38 @@
 import argparse
 import torch
 from pathlib import Path
-from utils.utils import *
 from torch.utils.data import DataLoader
+from utils.utils import *
+from utils.model import *
+import torch.optim as optim
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--content_dir", type=str, default="E:/PROJECTS/MAJOR/Dataset/train",
+    parser.add_argument("--content_dir", type=str, default="E:/PROJECTS/MAJOR/NST_APP/content_img",
                         help="Location of style dir.")
-    parser.add_argument("--style_dir", type=str, default="E:/PROJECTS/MAJOR/Dataset/train_2",
+    parser.add_argument("--style_dir", type=str, default="E:/PROJECTS/MAJOR/NST_APP/style_img",
                         help="Location of style dir.")
-    parser.add_argument("--vgg", type=str, default="",  #!!
+    parser.add_argument("--vgg", type=str, default="E:/PROJECTS/MAJOR/NST_APP/vgg_normalised.pth",  #!!
                         help="Location of vgg model.")
     parser.add_argument("--experiment", type=str, default="experiment1",
                         help="Name of experiment.")
-    parser.add_argument("--final_size", type=int, default=512,
+    
+    parser.add_argument("--final_size", type=int, default=256,
                         help="Size of final image")
-    parser.add_argument("--content_size", type=int, default=256,
+    parser.add_argument("--content_size", type=int, default=512,
                         help="Size of content image")
-    parser.add_argument("--style_size", type=int, default=256,
+    parser.add_argument("--style_size", type=int, default=512,
                         help="Size of style image")
     parser.add_argument("--crop", action="store_true", default=True,
                         help='Crop image')
+    
+    parser.add_argument('--batch_size', type=int, default=4,
+                        help='Batch size')
+    parser.add_argument('--lr', type=float, default='le-4',
+                        help='Learning Rate')
+    parser.add_argument('--lr_decay', type=float, default='5e-5',
+                        help='Learning Rate Decay')
     
     return parser.parse_args()
 
@@ -62,7 +72,17 @@ def main():
         drop_last=True    # drop last batch
     )
 
+    print('Number of batches in content dataset:', len(content_loader))
+    print('Number of batches in style dataset:', len(style_loader))
+    
+    encoder = VGGEncoder(args.vgg).to(device)
+    decoder = Decoder().to(device)
 
+    optimizer = optim.Adam(decoder.parameters(), lr=args.lr)
+    scheduler = optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lr_lambda = lambda epoch : 1.0 / (1.0 + args.lr_decay * epoch)  # return multiplier for lr
+    )
 
 
 
