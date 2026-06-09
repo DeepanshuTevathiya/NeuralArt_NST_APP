@@ -7,6 +7,7 @@ from utils.utils import *
 from utils.model import *
 from pathlib import Path
 from tqdm import tqdm
+from torchvision.utils import save_image
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -36,23 +37,36 @@ def parse_arguments():
     parser.add_argument('--lr_decay', type=float, default='5e-5',
                         help='Learning Rate Decay')
     
-    parser.add_argument('--epochs', type=float, default=1,
+    parser.add_argument('--epochs', type=int, default=1,
                         help='Epochs')
-    parser.add_argument('--content_weight', type=float, default=1.0,
+    parser.add_argument('--content_weight', type=int, default=1,
                         help='content_weight')
     
-    parser.add_argument('--style_weight', type=float, default=10.0,
+    parser.add_argument('--style_weight', type=int, default=5,
                         help='style_weight')
     
     parser.add_argument('--log_interval', type=float, default=1,
                         help='Log Interval')
+    
+    parser.add_argument('--save_interval', type=float, default=5,
+                        help='Save Interval')
+    
+    parser.add_argument('--resume', action='store_true', default=False,
+                        help='Resume the training')
+    
+    parser.add_argument('--decoder_path', type=str, default=None,
+                        help='Path of decoder')
+    
+    parser.add_argument('--optimizer_path', type=str, default=None,
+                        help='Path of optimizer')
+    
 
     return parser.parse_args()
 
 def main():
     args = parse_arguments()
 
-    device = torch.device("cude" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     save_dir = Path("experiment") / args.experiment  #dir to save experiment
     save_dir.mkdir(exist_ok=True, parents=True)
@@ -96,6 +110,10 @@ def main():
         optimizer,
         lr_lambda = lambda epoch : 1.0 / (1.0 + args.lr_decay * epoch)  # return multiplier for lr
     )
+
+    if args.resume:
+        decoder.load_state_dict(torch.load(args.decoder_path))
+        optimizer.load_state_dict(torch.load(args.optimizer_path))
 
     criterion = nn.MSELoss()
 
@@ -157,6 +175,15 @@ def main():
                 
         if (epoch+1) % args.log_interval == 0:
             tqdm.write(f'Iter: {epoch+1}  | Loss: {running_loss:4f} | C_loss: {running_closs:4f} | S_loss: {running_sloss:4f}')
+
+        # saving model, optim, img so i can resume training if stoped
+        if (epoch+1) % args.save_interval == 0:
+            torch.save(decoder.state_dict(), save_dir/f"decoder_{epoch+1}.pth")
+            torch.save(optimizer.state_dict(), save_dir/ f"optimizer_{epoch+1}.pth")
+
+            with torch.no_grad():
+                output = torch.cat([content_batch, style_batch, g], dim=0)
+                save_image(output, save_dir/ f"output_{epoch+1}.png", nrow=args.batch_size)
 
 
 
