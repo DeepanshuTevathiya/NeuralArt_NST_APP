@@ -12,11 +12,11 @@ from torchvision.utils import save_image
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--content_dir", type=str, default="E:/PROJECTS/MAJOR/NST_APP/content_img" ,
+    parser.add_argument("--content_dir", type=str, default="./content_img" ,
                         help="Location of style dir.")
-    parser.add_argument("--style_dir", type=str, default="E:/PROJECTS/MAJOR/NST_APP/style_img" ,
+    parser.add_argument("--style_dir", type=str, default="./style_img" ,
                         help="Location of style dir.")
-    parser.add_argument("--vgg", type=str, default="E:/PROJECTS/MAJOR/NST_APP/vgg_normalised.pth" ,  #!!
+    parser.add_argument("--vgg", type=str, default="E:./vgg_normalised.pth" ,  #!!
                         help="Location of vgg model.")
     parser.add_argument("--experiment", type=str, default="experiment1",
                         help="Name of experiment.")
@@ -104,7 +104,7 @@ def main():
     
     encoder = VGGEncoder(args.vgg).to(device)
     decoder = Decoder().to(device)
-
+    
     optimizer = optim.Adam(decoder.parameters(), lr=args.lr)
     scheduler = optim.lr_scheduler.LambdaLR(
         optimizer,
@@ -114,6 +114,11 @@ def main():
     if args.resume:
         decoder.load_state_dict(torch.load(args.decoder_path))
         optimizer.load_state_dict(torch.load(args.optimizer_path))
+
+    if torch.cuda.device_count() > 1:
+        print(f"Using {torch.cuda.device_count()} GPUs")
+        encoder = nn.DataParallel(encoder)
+        decoder = nn.DataParallel(decoder)
 
     criterion = nn.MSELoss()
 
@@ -178,7 +183,8 @@ def main():
 
         # saving model, optim, img so i can resume training if stoped
         if (epoch+1) % args.save_interval == 0:
-            torch.save(decoder.state_dict(), save_dir/f"decoder_{epoch+1}.pth")
+            decoder_state = decoder.module.state_dict() if isinstance(decoder, nn.DataParallel) else decoder.state_dict()
+            torch.save(decoder_state, save_dir/f"decoder_{epoch+1}.pth")
             torch.save(optimizer.state_dict(), save_dir/ f"optimizer_{epoch+1}.pth")
 
             with torch.no_grad():
